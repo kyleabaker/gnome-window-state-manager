@@ -79,7 +79,7 @@ export class WindowStates {
     const savedLayout = this.windowStates[displaySizeKey];
 
     if (!savedLayout) {
-      Logger.debug(`No saved layout found for resolution ${displaySizeKey}`);
+      Logger.error(`No saved layout found for resolution ${displaySizeKey}`);
       return;
     }
 
@@ -90,18 +90,35 @@ export class WindowStates {
       const persistentKey = `${wmClass}:${appCounts[wmClass]}`;
 
       if (savedLayout[persistentKey]) {
-        const stateData = savedLayout[persistentKey];
-        const state = new Window(stateData);
-        state.restore(window);
+        const savedState = new Window(savedLayout[persistentKey]);
+        const currentState = new Window(window); // Capture current position/state
+
+        // Only restore if the saved state is different from the current reality
+        if (!this._isAlreadyPositioned(savedState, currentState)) {
+          Logger.debug(`Restoring position for window ${currentState._title}`);
+          savedState.restore(window);
+        }
       }
     }
+  }
+
+  // Helper to compare current vs saved
+  _isAlreadyPositioned(saved, current) {
+    return (
+      saved._rect.x === current._rect.x &&
+      saved._rect.y === current._rect.y &&
+      saved._rect.width === current._rect.width &&
+      saved._rect.height === current._rect.height &&
+      saved._maximized === current._maximized &&
+      saved._workspace === current._workspace
+    );
   }
 
   saveToFile() {
     try {
       const contents = JSON.stringify(this.windowStates, null, 2);
       GLib.file_set_contents(this.savePath, contents);
-      Logger.debug(`Saved state to ${this.savePath}`);
+      // Logger.debug(`Saved state to ${this.savePath}`);
     } catch (e) {
       Logger.error(`Failed to save state to disk: ${e.message}`);
     }

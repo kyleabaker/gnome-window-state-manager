@@ -58,8 +58,28 @@ export default class WindowStateManager extends Extension {
 
     // Watch for new windows being opened to restore their specific positions
     this._signals.push(
-      global.display.connect('window-created', () => {
-        this._scheduleRefresh('Window Created', 50);
+      global.display.connect('window-created', (display, window) => {
+        // Restore position immediately (50ms delay for stability)
+        this._scheduleRefresh('Window Created', 200);
+
+        // Use GObject property notifications instead of window-state-changed
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+          if (!window || window.get_id() === -1) return GLib.SOURCE_REMOVE;
+
+          const signals = [
+            'notify::maximized-horizontally',
+            'notify::maximized-vertically',
+            'notify::minimized',
+          ];
+
+          signals.forEach((signal) => {
+            window.connect(signal, () => {
+              this.windowStates.saveWindowPositions();
+            });
+          });
+
+          return GLib.SOURCE_REMOVE;
+        });
       })
     );
 
