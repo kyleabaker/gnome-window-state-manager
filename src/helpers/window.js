@@ -36,7 +36,16 @@ export class Window {
   constructor(windowData) {
     // If we passed a MetaWindow object
     if (windowData.get_frame_rect) {
-      this._rect = windowData.get_frame_rect();
+      const rect = windowData.get_frame_rect();
+
+      // FIX: Manually map properties so JSON.stringify can see them
+      this._rect = {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      };
+
       this._maximized = getMaximizedFlags(windowData);
       this._minimized = windowData.minimized;
       this._workspace = windowData.get_workspace().index();

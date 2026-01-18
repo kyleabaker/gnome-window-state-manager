@@ -31,7 +31,7 @@ import { Logger } from './src/helpers/logger.js';
 import { WindowStates } from './src/helpers/windowStates.js';
 
 const EXTENSION_LOG_NAME = 'GNOME Window State Manager';
-const LOG_LEVEL = Logger.LOG_LEVELS.INFO;
+const LOG_LEVEL = Logger.LOG_LEVELS.EVERYTHING;
 
 export default class WindowStateManager extends Extension {
   enable() {
@@ -81,7 +81,7 @@ export default class WindowStateManager extends Extension {
   }
 
   _scheduleRefresh(reason, delay = 2000) {
-    Logger.info('Reason: ' + reason);
+    Logger.debug('Reason: ' + reason);
     if (this._refreshPending) GLib.source_remove(this._refreshPending);
 
     this._refreshPending = GLib.timeout_add(

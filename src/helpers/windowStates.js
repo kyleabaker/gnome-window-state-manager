@@ -51,31 +51,35 @@ export class WindowStates {
   }
 
   saveWindowPositions() {
-    Logger.info(`Saving window positions to disk...`);
+    Logger.debug(`Saving window positions to disk...`);
     const displaySizeKey = this.getWindowSizeKey();
-    const currentLayout = {};
+
+    // Start with the existing saved data instead of an empty object
+    const currentLayout = this.windowStates[displaySizeKey] || {};
     const appCounts = {};
 
     for (const window of this._getWindows()) {
       const wmClass = window.get_wm_class() || 'unknown';
       appCounts[wmClass] = (appCounts[wmClass] || 0) + 1;
 
-      // Persistent key: e.g., "google-chrome:1"
       const persistentKey = `${wmClass}:${appCounts[wmClass]}`;
+
+      // Update the layout with the new position
       currentLayout[persistentKey] = new Window(window);
     }
 
+    // Save the merged object back to the main state
     this.windowStates[displaySizeKey] = currentLayout;
     this.saveToFile();
   }
 
   restoreWindowPositions() {
-    Logger.info(`Attempting to restore window positions...`);
+    Logger.debug(`Attempting to restore window positions...`);
     const displaySizeKey = this.getWindowSizeKey();
     const savedLayout = this.windowStates[displaySizeKey];
 
     if (!savedLayout) {
-      Logger.info(`No saved layout found for resolution ${displaySizeKey}`);
+      Logger.debug(`No saved layout found for resolution ${displaySizeKey}`);
       return;
     }
 
@@ -109,7 +113,7 @@ export class WindowStates {
         const [success, contents] = GLib.file_get_contents(this.savePath);
         if (success) {
           // GLib returns a Uint8Array/Bytes in some environments, ensure it's a string
-          const decoder = new globalThis.TextDecoder();
+          const decoder = new TextDecoder(); // eslint-disable-line
           return JSON.parse(decoder.decode(contents));
         }
       }
