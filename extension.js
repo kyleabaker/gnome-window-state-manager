@@ -74,7 +74,7 @@ export default class WindowStateManager extends Extension {
 
           signals.forEach((signal) => {
             window.connect(signal, () => {
-              this.windowStates.saveWindowPositions();
+              this._scheduleSave();
             });
           });
 
@@ -113,6 +113,17 @@ export default class WindowStateManager extends Extension {
         return GLib.SOURCE_REMOVE;
       }
     );
+  }
+
+  _scheduleSave() {
+    // If a save is already queued, cancel it and restart the timer
+    if (this._savePending) GLib.source_remove(this._savePending);
+
+    this._savePending = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+      this.windowStates.saveWindowPositions();
+      this._savePending = null;
+      return GLib.SOURCE_REMOVE;
+    });
   }
 
   _refreshState() {
