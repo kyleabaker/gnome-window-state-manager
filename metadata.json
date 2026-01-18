@@ -1,0 +1,10 @@
+{
+  "name": "GNOME Window State Manager",
+  "description": "GNOME Window State Manager for GNOME Shell. This extension restores window positions for single and multi-screen configurations.\n\n\n",
+  "url": "https://github.com/kyleabaker/gnome-window-state-manager",
+  "uuid": "gnome-window-state-manager@kyleabaker.github.com",
+  "settings-schema": "org.gnome.shell.extensions.com.github.kyleabaker.gnome-window-state-manager",
+  "shell-version": ["45", "46", "47", "48", "49"],
+  "version": 1,
+  "session-modes": ["user", "unlock-dialog"]
+}

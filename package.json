@@ -1,0 +1,35 @@
+{
+  "name": "gnome-window-state-manager",
+  "version": "1.0.0",
+  "description": "GNOME Window State Manager for GNOME Shell. This extension restores window positions for single and multi-screen configurations.",
+  "main": "extension.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write '**/*.{js,ts,xml,html,json,css,scss,yaml,yml,md}'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kyleabaker/gnome-window-state-manager.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kyleabaker/gnome-window-state-manager/issues"
+  },
+  "homepage": "https://github.com/kyleabaker/gnome-window-state-manager#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@prettier/plugin-xml": "^3.4.2",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.0"
+  },
+  "dependencies": {
+    "npm-check-updates": "^19.3.1"
+  }
+}
