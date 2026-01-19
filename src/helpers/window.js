@@ -38,7 +38,7 @@ export class Window {
     if (windowData.get_frame_rect) {
       const rect = windowData.get_frame_rect();
 
-      // FIX: Manually map properties so JSON.stringify can see them
+      // Manually map properties so JSON.stringify can see them
       this._rect = {
         x: rect.x,
         y: rect.y,
@@ -55,6 +55,10 @@ export class Window {
           : windowData.wm_class || 'unknown';
       this._title = windowData.get_title();
       this._fullscreen = windowData.fullscreen;
+      this._stable_sequence =
+        typeof windowData.get_stable_sequence === 'function'
+          ? windowData.get_stable_sequence()
+          : null;
     } else {
       // If we passed a plain object (loaded from JSON)
       Object.assign(this, windowData);

@@ -54,25 +54,34 @@ export class WindowStates {
     Logger.debug(`Saving window positions to disk...`);
     const displaySizeKey = this.getWindowSizeKey();
 
-    // Start with the existing saved data instead of an empty object
+    // Merge with existing data so we don't lose windows that are currently closed
     const currentLayout = this.windowStates[displaySizeKey] || {};
     const appCounts = {};
 
-    for (const window of this._getWindows()) {
+    // Get windows and SORT them by stable_sequence
+    // This ensures Index #1 is ALWAYS the window created first.
+    const windows = this._getWindows().sort((a, b) => {
+      return a.get_stable_sequence() - b.get_stable_sequence();
+    });
+
+    for (const window of windows) {
       const wmClass = window.get_wm_class() || 'unknown';
       appCounts[wmClass] = (appCounts[wmClass] || 0) + 1;
 
       const persistentKey = `${wmClass}:${appCounts[wmClass]}`;
 
-      // Update the layout with the new position
+      // Convert the C-Object into our clean JS-Object
+      // Ensure your Window class constructor handles a Meta.Window input
       currentLayout[persistentKey] = new Window(window);
+
+      Logger.debug(
+        `Saved ${persistentKey} at ${currentLayout[persistentKey]._rect.x},${currentLayout[persistentKey]._rect.y}`
+      );
     }
 
-    // Save the merged object back to the main state
     this.windowStates[displaySizeKey] = currentLayout;
     this.saveToFile();
   }
-
   restoreWindowPositions() {
     Logger.debug(`Attempting to restore window positions...`);
     const displaySizeKey = this.getWindowSizeKey();
@@ -83,21 +92,30 @@ export class WindowStates {
       return;
     }
 
-    const appCounts = {};
-    for (const window of this._getWindows()) {
-      const wmClass = window.get_wm_class() || 'unknown';
-      appCounts[wmClass] = (appCounts[wmClass] || 0) + 1;
-      const persistentKey = `${wmClass}:${appCounts[wmClass]}`;
+    // Get all active windows once to avoid repeated filtering
+    const allWindows = this._getWindows();
 
+    for (const window of allWindows) {
+      const wmClass = window.get_wm_class() || 'unknown';
+
+      // To handle multiple identical apps, find all windows of this class
+      // and sort them by their session-unique stable sequence.
+      const sameAppWindows = allWindows
+        .filter((w) => (w.get_wm_class() || 'unknown') === wmClass)
+        .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence());
+
+      // Determine which "instance number" this window is for this session
+      const instanceIndex = sameAppWindows.indexOf(window) + 1;
+      const persistentKey = `${wmClass}:${instanceIndex}`;
+
+      // Match against the saved layout using the same keying logic
       if (savedLayout[persistentKey]) {
         const savedState = new Window(savedLayout[persistentKey]);
-        const currentState = new Window(window); // Capture current position/state
+        const currentState = new Window(window);
 
-        // Only restore if the saved state is different from the current reality
+        // Only perform the expensive move/resize if the reality differs from the save
         if (!this._isAlreadyPositioned(savedState, currentState)) {
-          Logger.debug(
-            `Restoring '${currentState._title}' - x,y: ${currentState._rect.x},${currentState._rect.y} -> ${savedState._rect.x},${savedState._rect.y}`
-          );
+          Logger.debug(`Restoring instance ${instanceIndex} of '${wmClass}'`);
           savedState.restore(window);
         }
       }
