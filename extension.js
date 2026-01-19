@@ -78,7 +78,6 @@ export default class WindowStateManager extends Extension {
     // Watch for new windows being opened to restore their specific positions
     this._signals.push(
       global.display.connect('window-created', (display, window) => {
-        Logger.debug('window-created');
         if (!window || typeof window.get_window_type !== 'function') {
           return;
         }
