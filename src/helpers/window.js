@@ -49,7 +49,10 @@ export class Window {
       this._maximized = getMaximizedFlags(windowData);
       this._minimized = windowData.minimized;
       this._workspace = windowData.get_workspace().index();
-      this._wm_class = windowData.get_wm_class() || 'unknown';
+      this._wm_class =
+        typeof windowData.get_wm_class === 'function'
+          ? windowData.get_wm_class()
+          : windowData.wm_class || 'unknown';
       this._title = windowData.get_title();
       this._fullscreen = windowData.fullscreen;
     } else {
