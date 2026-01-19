@@ -82,6 +82,7 @@ export class WindowStates {
     this.windowStates[displaySizeKey] = currentLayout;
     this.saveToFile();
   }
+
   restoreWindowPositions() {
     Logger.debug(`Attempting to restore window positions...`);
     const displaySizeKey = this.getWindowSizeKey();
@@ -95,14 +96,27 @@ export class WindowStates {
     // Get all active windows once to avoid repeated filtering
     const allWindows = this._getWindows();
 
+    // Group windows by class to avoid O(N^2) lookup in the loop
+    const windowsByClass = {};
+    for (const window of allWindows) {
+      const wmClass = window.get_wm_class() || 'unknown';
+      if (!windowsByClass[wmClass]) windowsByClass[wmClass] = [];
+      windowsByClass[wmClass].push(window);
+    }
+
+    // Sort each group by stable sequence
+    for (const wmClass in windowsByClass) {
+      windowsByClass[wmClass].sort(
+        (a, b) => a.get_stable_sequence() - b.get_stable_sequence()
+      );
+    }
+
     for (const window of allWindows) {
       const wmClass = window.get_wm_class() || 'unknown';
 
       // To handle multiple identical apps, find all windows of this class
       // and sort them by their session-unique stable sequence.
-      const sameAppWindows = allWindows
-        .filter((w) => (w.get_wm_class() || 'unknown') === wmClass)
-        .sort((a, b) => a.get_stable_sequence() - b.get_stable_sequence());
+      const sameAppWindows = windowsByClass[wmClass] || [];
 
       // Determine which "instance number" this window is for this session
       const instanceIndex = sameAppWindows.indexOf(window) + 1;

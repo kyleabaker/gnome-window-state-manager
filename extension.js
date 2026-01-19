@@ -46,9 +46,16 @@ export default class WindowStateManager extends Extension {
     Logger.info('Extension enabled.');
 
     this.windowStates = new WindowStates();
+    this._windowSignals = new Map();
+    this._creationTimeouts = new Set();
     this.lastRefreshedSize = this.windowStates.getWindowSizeKey();
 
     this._connectSignals();
+
+    // Attach signals to existing windows
+    global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null).forEach((w) => {
+      this._monitorWindow(w);
+    });
 
     // Initial restore for windows already open
     this._scheduleRefresh('Initial Load');
@@ -56,7 +63,12 @@ export default class WindowStateManager extends Extension {
 
   disable() {
     this._disconnectSignals();
+    this._disconnectWindowSignals();
+    this._clearTimeouts();
+
     this.windowStates = null;
+    this._windowSignals = null;
+    this._creationTimeouts = null;
     Logger.info('Extension disabled.');
   }
 
@@ -78,68 +90,29 @@ export default class WindowStateManager extends Extension {
     // Watch for new windows being opened to restore their specific positions
     this._signals.push(
       global.display.connect('window-created', (display, window) => {
-        if (!window || typeof window.get_window_type !== 'function') {
-          return;
-        }
-
-        // Skip if it's not a "Normal" window (filters tooltips, menus, etc.)
-        const windowType = window.get_window_type();
-        if (windowType !== Meta.WindowType.NORMAL) {
-          Logger.debug('Skip WindowType: ' + windowType);
-          return;
-        }
-
-        // Skip if it doesn't show up in the taskbar (extra safety)
-        const isSkipTaskbar = window.is_skip_taskbar?.() || false;
-        if (isSkipTaskbar) {
-          Logger.debug('Skip non-taskbar windows');
-          return;
-        }
-
-        // Skip "Transient" windows (popups attached to a parent)
-        const isTransient = window.get_transient_for?.() || false;
-        if (isTransient) {
-          Logger.debug('Skip transient windows');
-          return;
-        }
+        if (!this._isValidWindow(window)) return;
 
         // Restore position immediately (200ms delay for stability)
         this._scheduleRefresh('Window Created', delayWindowCreatedRefresh);
 
         // Use GObject property notifications instead of window-state-changed
-        GLib.timeout_add(
+        const timeoutId = GLib.timeout_add(
           GLib.PRIORITY_DEFAULT,
           delayWindowResizeSignals,
           () => {
-            if (
-              !window ||
-              (typeof window.get_wm_class !== 'function' && !window.wm_class)
-            ) {
-              return GLib.SOURCE_REMOVE;
-            }
-
-            const signals = [
-              'notify::maximized-horizontally',
-              'notify::maximized-vertically',
-              'notify::minimized',
-            ];
-
-            signals.forEach((signal) => {
-              window.connect(signal, () => {
-                this._scheduleSave();
-              });
-            });
-
+            this._creationTimeouts.delete(timeoutId);
+            this._monitorWindow(window);
             return GLib.SOURCE_REMOVE;
           }
         );
+        this._creationTimeouts.add(timeoutId);
       })
     );
 
     // Watch for windows being moved/resized to save state
     this._signals.push(
       global.display.connect('grab-op-end', () => {
-        this.windowStates.saveWindowPositions();
+        this._scheduleSave();
       })
     );
   }
@@ -153,6 +126,68 @@ export default class WindowStateManager extends Extension {
     }
   }
 
+  _disconnectWindowSignals() {
+    if (this._windowSignals) {
+      for (const [window, signals] of this._windowSignals) {
+        signals.forEach((id) => window.disconnect(id));
+      }
+      this._windowSignals.clear();
+    }
+  }
+
+  _isValidWindow(window) {
+    if (!window || typeof window.get_window_type !== 'function') return false;
+    if (window.get_window_type() !== Meta.WindowType.NORMAL) return false;
+    if (window.is_skip_taskbar?.()) return false;
+    if (window.get_transient_for?.()) return false;
+    return true;
+  }
+
+  _monitorWindow(window) {
+    if (!this._isValidWindow(window)) return;
+    if (this._windowSignals.has(window)) return;
+
+    const signals = [];
+
+    // Clean up our tracking if the window is destroyed
+    const destroyId = window.connect('unmanaged', () => {
+      this._windowSignals.delete(window);
+    });
+    signals.push(destroyId);
+
+    // Watch for state changes
+    const stateSignals = [
+      'notify::maximized-horizontally',
+      'notify::maximized-vertically',
+      'notify::minimized',
+    ];
+
+    stateSignals.forEach((signal) => {
+      signals.push(
+        window.connect(signal, () => {
+          this._scheduleSave();
+        })
+      );
+    });
+
+    this._windowSignals.set(window, signals);
+  }
+
+  _clearTimeouts() {
+    if (this._refreshPending) {
+      GLib.source_remove(this._refreshPending);
+      this._refreshPending = null;
+    }
+    if (this._savePending) {
+      GLib.source_remove(this._savePending);
+      this._savePending = null;
+    }
+    if (this._creationTimeouts) {
+      this._creationTimeouts.forEach((id) => GLib.source_remove(id));
+      this._creationTimeouts.clear();
+    }
+  }
+
   _scheduleRefresh(reason, delay = 2000) {
     Logger.debug('Reason: ' + reason);
     if (this._refreshPending) GLib.source_remove(this._refreshPending);
@@ -161,8 +196,8 @@ export default class WindowStateManager extends Extension {
       GLib.PRIORITY_DEFAULT,
       delay,
       () => {
-        this._refreshState();
         this._refreshPending = null;
+        this._refreshState();
         return GLib.SOURCE_REMOVE;
       }
     );
@@ -173,13 +208,15 @@ export default class WindowStateManager extends Extension {
     if (this._savePending) GLib.source_remove(this._savePending);
 
     this._savePending = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-      this.windowStates.saveWindowPositions();
       this._savePending = null;
+      this.windowStates.saveWindowPositions();
       return GLib.SOURCE_REMOVE;
     });
   }
 
   _refreshState() {
+    if (!this.windowStates) return;
+
     const currentSize = this.windowStates.getWindowSizeKey();
 
     // Always attempt restore when triggered by window creation or startup

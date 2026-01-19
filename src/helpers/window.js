@@ -25,13 +25,6 @@
  */
 import Meta from 'gi://Meta';
 
-function getMaximizedFlags(win) {
-  let flags = 0;
-  if (win.maximized_horizontally) flags |= Meta.MaximizeFlags.HORIZONTAL;
-  if (win.maximized_vertically) flags |= Meta.MaximizeFlags.VERTICAL;
-  return flags;
-}
-
 export class Window {
   constructor(windowData) {
     // If we passed a MetaWindow object
@@ -46,7 +39,7 @@ export class Window {
         height: rect.height,
       };
 
-      this._maximized = getMaximizedFlags(windowData);
+      this._maximized = this._getMaximizedFlags(windowData);
       this._minimized = windowData.minimized;
       this._workspace = windowData.get_workspace().index();
       this._wm_class =
@@ -70,7 +63,7 @@ export class Window {
     this._configureWorkspace(currentWindow, this._workspace);
 
     if (!this._equalRect(currentWindow)) {
-      if (getMaximizedFlags(currentWindow)) currentWindow.unmaximize();
+      if (this._getMaximizedFlags(currentWindow)) currentWindow.unmaximize();
 
       this._moveResizeFrame(currentWindow);
     }
@@ -100,7 +93,7 @@ export class Window {
   }
 
   _setMaximized(window) {
-    const current = getMaximizedFlags(window);
+    const current = this._getMaximizedFlags(window);
     if (current !== this._maximized) {
       if (this._maximized) window.maximize();
       else window.unmaximize();
@@ -112,6 +105,13 @@ export class Window {
       if (this._minimized) window.minimize();
       else window.unminimize();
     }
+  }
+
+  _getMaximizedFlags(window) {
+    let flags = 0;
+    if (window.maximized_horizontally) flags |= Meta.MaximizeFlags.HORIZONTAL;
+    if (window.maximized_vertically) flags |= Meta.MaximizeFlags.VERTICAL;
+    return flags;
   }
 
   _configureWorkspace(window, workspaceIndex) {
