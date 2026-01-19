@@ -74,10 +74,10 @@ export default class WindowStateManager extends Extension {
 
   _connectSignals() {
     const delayWindowCreatedRefresh = parseInt(
-      Number(this.settingsData.DELAY_WINDOW_CREATED_REFRESH.get() || 200)
+      Number(this.settingsData.DELAY_WINDOW_CREATED_REFRESH.get())
     );
     const delayWindowResizeSignals = parseInt(
-      Number(this.settingsData.DELAY_WINDOW_RESIZE_SIGNALS.get() || 500)
+      Number(this.settingsData.DELAY_WINDOW_RESIZE_SIGNALS.get())
     );
 
     Logger.info('DELAY_WINDOW_CREATED_REFRESH: ' + delayWindowCreatedRefresh);

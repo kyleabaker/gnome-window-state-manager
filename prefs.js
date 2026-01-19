@@ -146,11 +146,12 @@ export default class Prefs extends ExtensionPreferences {
     scale.set_value(settingsData.get());
     scale.set_size_request(400, 15);
 
-    scale.connect('value-changed', () => {
-      const newval = scale.get_value();
+    scale.connect('value-changed', (sw) => {
+      const newval = sw.get_value();
       const rounded = Math.round(newval / step) * step;
-      if (newval != rounded) {
-        scale.set(rounded);
+      if (rounded != settingsData.get()) {
+        settingsData.set(rounded);
+        scale.set_value(rounded);
       }
     });
 

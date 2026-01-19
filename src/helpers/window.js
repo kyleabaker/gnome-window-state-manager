@@ -24,6 +24,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 import Meta from 'gi://Meta';
+import GLib from 'gi://GLib';
+
+import { Logger } from './logger.js';
 
 export class Window {
   constructor(windowData) {
@@ -58,7 +61,7 @@ export class Window {
     }
   }
 
-  restore(currentWindow) {
+  restore(currentWindow, retry = true) {
     // Workspace check must come before movement/resize
     this._configureWorkspace(currentWindow, this._workspace);
 
@@ -70,6 +73,14 @@ export class Window {
 
     this._setMaximized(currentWindow);
     this._setMinimized(currentWindow);
+
+    if (retry && !this._equalRect(currentWindow)) {
+      Logger.debug(`Retrying restore`);
+      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+        this.restore(currentWindow, false);
+        return GLib.SOURCE_REMOVE;
+      });
+    }
   }
 
   _equalRect(window) {
@@ -83,6 +94,13 @@ export class Window {
   }
 
   _moveResizeFrame(window) {
+    Logger.debug(`Resizing window: ${this._rect.x},${this._rect.y}`);
+
+    // Call move_frame first to prime the window position. This fixes issue
+    // where move_resize_frame is ignored in GNOME 45-49 during load.
+    window.move_frame(true, this._rect.x, this._rect.y);
+
+    // Now apply the full move and resize
     window.move_resize_frame(
       true,
       this._rect.x,
