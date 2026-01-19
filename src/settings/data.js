@@ -33,19 +33,11 @@
  */
 export function createSettingsData(settings) {
   const doubleKeys = [
-    ['FRICTION', 'friction'],
-    ['SPRING_K', 'spring-k'],
-    ['SPEEDUP_FACTOR', 'speedup-factor-divider'],
-    ['MASS', 'mass'],
-    ['X_TILES', 'x-tiles'],
-    ['Y_TILES', 'y-tiles'],
+    ['DELAY_WINDOW_CREATED_REFRESH', 'delay-window-created-refresh'],
+    ['DELAY_WINDOW_RESIZE_SIGNALS', 'delay-window-resize-signals'],
   ];
 
-  const booleanKeys = [
-    ['MAXIMIZE_EFFECT', 'maximize-effect'],
-    ['RESIZE_EFFECT', 'resize-effect'],
-    ['ENABLE_LOGGING', 'enable-logging'],
-  ];
+  const booleanKeys = [['ENABLE_LOGGING', 'enable-logging']];
 
   const data = {};
 

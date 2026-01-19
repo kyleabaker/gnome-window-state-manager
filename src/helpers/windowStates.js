@@ -95,7 +95,7 @@ export class WindowStates {
 
         // Only restore if the saved state is different from the current reality
         if (!this._isAlreadyPositioned(savedState, currentState)) {
-          Logger.info(
+          Logger.debug(
             `Restoring '${currentState._title}' - x,y: ${currentState._rect.x},${currentState._rect.y} -> ${savedState._rect.x},${savedState._rect.y}`
           );
           savedState.restore(window);

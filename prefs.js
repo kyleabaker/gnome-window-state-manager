@@ -52,80 +52,36 @@ export default class Prefs extends ExtensionPreferences {
     const page = Adw.PreferencesPage.new();
     page.set_title('GNOME Window State Manager');
 
-    // Settings group 1: Friction, Spring, Speedup Factor, Mass
+    // Settings group 1: Window Created Refresh Delay, Window Resize Signals Delay
     const group1 = Adw.PreferencesGroup.new();
-    this.frictionSlider = this.addSlider(
+    this.delayWindowCreatedRefreshSlider = this.addSlider(
       group1,
-      'Friction',
-      settingsData.FRICTION,
-      1.0,
-      10.0,
-      1
+      'Window Created Refresh Delay',
+      settingsData.DELAY_WINDOW_CREATED_REFRESH,
+      50,
+      1000,
+      10,
+      0
     );
-    this.springKSlider = this.addSlider(
+    this.windowResizeSignalsDelaySlider = this.addSlider(
       group1,
-      'Spring',
-      settingsData.SPRING_K,
-      1.0,
-      10.0,
-      1
-    );
-    this.speedupFactor = this.addSlider(
-      group1,
-      'Speedup Factor',
-      settingsData.SPEEDUP_FACTOR,
-      2.0,
-      40.0,
-      1
-    );
-    this.massSlider = this.addSlider(
-      group1,
-      'Mass',
-      settingsData.MASS,
-      20.0,
-      80.0,
+      'Window Resize Signals Delay',
+      settingsData.DELAY_WINDOW_RESIZE_SIGNALS,
+      50,
+      2000,
+      10,
       0
     );
     page.add(group1);
 
-    // Settings group 2: X Tiles, Y Tiles, Maximize effect, Resize effect
+    // Settings group 2: Enable Logging
     const group2 = Adw.PreferencesGroup.new();
-    this.xTilesSlider = this.addSlider(
-      group2,
-      'X Tiles',
-      settingsData.X_TILES,
-      3.0,
-      20.0,
-      0
-    );
-    this.yTilesSlider = this.addSlider(
-      group2,
-      'Y Tiles',
-      settingsData.Y_TILES,
-      3.0,
-      20.0,
-      0
-    );
-    this.maximizeEffectSwitch = this.addBooleanSwitch(
-      group2,
-      'Maximize effect',
-      settingsData.MAXIMIZE_EFFECT
-    );
-    this.resizeEffectSwitch = this.addBooleanSwitch(
-      group2,
-      'Resize effect',
-      settingsData.RESIZE_EFFECT
-    );
-    page.add(group2);
-
-    // Settings group 3: Enable Logging
-    const group3 = Adw.PreferencesGroup.new();
     this.enableLoggingSwitch = this.addBooleanSwitch(
-      group3,
+      group2,
       'Enable Logging',
       settingsData.ENABLE_LOGGING
     );
-    page.add(group3);
+    page.add(group2);
 
     // Reset button
     this.addResetButton(window, settingsData);
@@ -144,24 +100,16 @@ export default class Prefs extends ExtensionPreferences {
     button.set_icon_name('edit-clear');
 
     button.connect('clicked', () => {
-      settingsData.FRICTION.set(3.5);
-      settingsData.SPRING_K.set(3.8);
-      settingsData.SPEEDUP_FACTOR.set(12.0);
-      settingsData.MASS.set(70.0);
-      settingsData.X_TILES.set(6.0);
-      settingsData.Y_TILES.set(6.0);
-      settingsData.MAXIMIZE_EFFECT.set(true);
-      settingsData.RESIZE_EFFECT.set(false);
+      settingsData.DELAY_WINDOW_CREATED_REFRESH.set(200);
+      settingsData.DELAY_WINDOW_RESIZE_SIGNALS.set(500);
       settingsData.ENABLE_LOGGING.set(false);
 
-      this.frictionSlider.set_value(settingsData.FRICTION.get());
-      this.springKSlider.set_value(settingsData.SPRING_K.get());
-      this.speedupFactor.set_value(settingsData.SPEEDUP_FACTOR.get());
-      this.massSlider.set_value(settingsData.MASS.get());
-      this.xTilesSlider.set_value(settingsData.X_TILES.get());
-      this.yTilesSlider.set_value(settingsData.Y_TILES.get());
-      this.maximizeEffectSwitch.set_active(settingsData.MAXIMIZE_EFFECT.get());
-      this.resizeEffectSwitch.set_active(settingsData.RESIZE_EFFECT.get());
+      this.delayWindowCreatedRefreshSlider.set_value(
+        settingsData.DELAY_WINDOW_CREATED_REFRESH.get()
+      );
+      this.windowResizeSignalsDelaySlider.set_value(
+        settingsData.DELAY_WINDOW_RESIZE_SIGNALS.get()
+      );
       this.enableLoggingSwitch.set_value(settingsData.ENABLE_LOGGING.get());
     });
 
@@ -181,10 +129,15 @@ export default class Prefs extends ExtensionPreferences {
    * @param {number} upper
    * @param {number} decimalDigits
    */
-  addSlider(group, labelText, settingsData, lower, upper, decimalDigits) {
+  addSlider(group, labelText, settingsData, lower, upper, step, decimalDigits) {
     const scale = new Gtk.Scale({
+      adjustment: new Gtk.Adjustment({
+        lower: lower,
+        upper: upper,
+        step_increment: step,
+        page_increment: step,
+      }),
       digits: decimalDigits,
-      adjustment: new Gtk.Adjustment({ lower: lower, upper: upper }),
       value_pos: Gtk.PositionType.RIGHT,
       hexpand: true,
       halign: Gtk.Align.END,
@@ -193,10 +146,11 @@ export default class Prefs extends ExtensionPreferences {
     scale.set_value(settingsData.get());
     scale.set_size_request(400, 15);
 
-    scale.connect('value-changed', (sw) => {
-      const newval = sw.get_value();
-      if (newval != settingsData.get()) {
-        settingsData.set(newval);
+    scale.connect('value-changed', () => {
+      const newval = scale.get_value();
+      const rounded = Math.round(newval / step) * step;
+      if (newval != rounded) {
+        scale.set(rounded);
       }
     });
 

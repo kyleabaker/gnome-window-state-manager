@@ -28,14 +28,20 @@ import GLib from 'gi://GLib';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
+import { createSettingsData } from './src/settings/data.js';
 import { Logger } from './src/helpers/logger.js';
 import { WindowStates } from './src/helpers/windowStates.js';
 
 const EXTENSION_LOG_NAME = 'GNOME Window State Manager';
-const LOG_LEVEL = Logger.LOG_LEVELS.INFO;
+const LOG_LEVEL_DEFAULT = Logger.LOG_LEVELS.INFO;
+const LOG_LEVEL_EVERYTHING = Logger.LOG_LEVELS.EVERYTHING;
 
 export default class WindowStateManager extends Extension {
   enable() {
+    this.settingsData = createSettingsData(this.getSettings());
+    const enableLogging = this.settingsData.ENABLE_LOGGING.get();
+    const LOG_LEVEL = enableLogging ? LOG_LEVEL_EVERYTHING : LOG_LEVEL_DEFAULT;
+
     Logger.init(EXTENSION_LOG_NAME, LOG_LEVEL);
     Logger.info('Extension enabled.');
 
@@ -55,11 +61,24 @@ export default class WindowStateManager extends Extension {
   }
 
   _connectSignals() {
+    const delayWindowCreatedRefresh = parseInt(
+      Number(this.settingsData.DELAY_WINDOW_CREATED_REFRESH.get() || 200)
+    );
+    const delayWindowResizeSignals = parseInt(
+      Number(this.settingsData.DELAY_WINDOW_RESIZE_SIGNALS.get() || 500)
+    );
+
+    Logger.info('DELAY_WINDOW_CREATED_REFRESH: ' + delayWindowCreatedRefresh);
+    Logger.info(
+      'Skip DELAY_WINDOW_RESIZE_SIGNALS: ' + delayWindowResizeSignals
+    );
+
     this._signals = [];
 
     // Watch for new windows being opened to restore their specific positions
     this._signals.push(
       global.display.connect('window-created', (display, window) => {
+        Logger.debug('window-created');
         if (!window || typeof window.get_window_type !== 'function') {
           return;
         }
@@ -67,50 +86,54 @@ export default class WindowStateManager extends Extension {
         // Skip if it's not a "Normal" window (filters tooltips, menus, etc.)
         const windowType = window.get_window_type();
         if (windowType !== Meta.WindowType.NORMAL) {
-          Logger.info('Skip WindowType: ' + windowType);
+          Logger.debug('Skip WindowType: ' + windowType);
           return;
         }
 
         // Skip if it doesn't show up in the taskbar (extra safety)
         const isSkipTaskbar = window.is_skip_taskbar?.() || false;
         if (isSkipTaskbar) {
-          Logger.info('Skip non-taskbar windows');
+          Logger.debug('Skip non-taskbar windows');
           return;
         }
 
         // Skip "Transient" windows (popups attached to a parent)
         const isTransient = window.get_transient_for?.() || false;
         if (isTransient) {
-          Logger.info('Skip transient windows');
+          Logger.debug('Skip transient windows');
           return;
         }
 
-        // Restore position immediately (50ms delay for stability)
-        this._scheduleRefresh('Window Created', 200);
+        // Restore position immediately (200ms delay for stability)
+        this._scheduleRefresh('Window Created', delayWindowCreatedRefresh);
 
         // Use GObject property notifications instead of window-state-changed
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-          if (
-            !window ||
-            (typeof window.get_wm_class !== 'function' && !window.wm_class)
-          ) {
+        GLib.timeout_add(
+          GLib.PRIORITY_DEFAULT,
+          delayWindowResizeSignals,
+          () => {
+            if (
+              !window ||
+              (typeof window.get_wm_class !== 'function' && !window.wm_class)
+            ) {
+              return GLib.SOURCE_REMOVE;
+            }
+
+            const signals = [
+              'notify::maximized-horizontally',
+              'notify::maximized-vertically',
+              'notify::minimized',
+            ];
+
+            signals.forEach((signal) => {
+              window.connect(signal, () => {
+                this._scheduleSave();
+              });
+            });
+
             return GLib.SOURCE_REMOVE;
           }
-
-          const signals = [
-            'notify::maximized-horizontally',
-            'notify::maximized-vertically',
-            'notify::minimized',
-          ];
-
-          signals.forEach((signal) => {
-            window.connect(signal, () => {
-              this._scheduleSave();
-            });
-          });
-
-          return GLib.SOURCE_REMOVE;
-        });
+        );
       })
     );
 

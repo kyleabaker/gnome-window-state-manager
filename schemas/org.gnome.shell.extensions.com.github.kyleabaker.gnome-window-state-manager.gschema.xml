@@ -4,51 +4,15 @@
     id="org.gnome.shell.extensions.com.github.kyleabaker.gnome-window-state-manager"
     path="/org/gnome/shell/extensions/com/github/kyleabaker/gnome-window-state-manager/"
   >
-    <key type="d" name="friction">
-      <default>3.5</default>
-      <summary>Friction</summary>
+    <key type="d" name="delay-window-created-refresh">
+      <default>200</default>
+      <summary>Window Created Refresh Delay</summary>
       <description />
     </key>
 
-    <key type="d" name="spring-k">
-      <default>3.8</default>
-      <summary>Spring k</summary>
-      <description />
-    </key>
-
-    <key type="d" name="speedup-factor-divider">
-      <default>12.0</default>
-      <summary>Speedup Factor</summary>
-      <description />
-    </key>
-
-    <key type="d" name="mass">
-      <default>70.0</default>
-      <summary>Mass</summary>
-      <description />
-    </key>
-
-    <key type="d" name="x-tiles">
-      <default>6.0</default>
-      <summary>X Tiles</summary>
-      <description />
-    </key>
-
-    <key type="d" name="y-tiles">
-      <default>6.0</default>
-      <summary>Y Tiles</summary>
-      <description />
-    </key>
-
-    <key type="b" name="maximize-effect">
-      <default>true</default>
-      <summary>Maximize effect</summary>
-      <description />
-    </key>
-
-    <key type="b" name="resize-effect">
-      <default>false</default>
-      <summary>Resize effect</summary>
+    <key type="d" name="delay-window-resize-signals">
+      <default>500</default>
+      <summary>Window Resize Signals Delay</summary>
       <description />
     </key>
 
