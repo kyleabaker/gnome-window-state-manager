@@ -81,9 +81,7 @@ export default class WindowStateManager extends Extension {
     );
 
     Logger.info('DELAY_WINDOW_CREATED_REFRESH: ' + delayWindowCreatedRefresh);
-    Logger.info(
-      'Skip DELAY_WINDOW_RESIZE_SIGNALS: ' + delayWindowResizeSignals
-    );
+    Logger.info('DELAY_WINDOW_RESIZE_SIGNALS: ' + delayWindowResizeSignals);
 
     this._signals = [];
 
@@ -92,20 +90,37 @@ export default class WindowStateManager extends Extension {
       global.display.connect('window-created', (display, window) => {
         if (!this._isValidWindow(window)) return;
 
-        // Restore position immediately (200ms delay for stability)
-        this._scheduleRefresh('Window Created', delayWindowCreatedRefresh);
+        const onWindowReady = () => {
+          if (!this.windowStates) return;
 
-        // Use GObject property notifications instead of window-state-changed
-        const timeoutId = GLib.timeout_add(
-          GLib.PRIORITY_DEFAULT,
-          delayWindowResizeSignals,
-          () => {
-            this._creationTimeouts.delete(timeoutId);
-            this._monitorWindow(window);
-            return GLib.SOURCE_REMOVE;
-          }
-        );
-        this._creationTimeouts.add(timeoutId);
+          // Restore position immediately (200ms delay for stability)
+          this._scheduleRefresh('Window Created', delayWindowCreatedRefresh);
+
+          // Use GObject property notifications instead of window-state-changed
+          const timeoutId = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            delayWindowResizeSignals,
+            () => {
+              this._creationTimeouts.delete(timeoutId);
+              this._monitorWindow(window);
+              return GLib.SOURCE_REMOVE;
+            }
+          );
+          this._creationTimeouts.add(timeoutId);
+        };
+
+        const actor = window.get_compositor_private();
+        if (actor) {
+          const signalId = actor.connect('first-frame', () => {
+            actor.disconnect(signalId);
+            onWindowReady();
+          });
+        } else {
+          Logger.debug(
+            'Window first-frame signal not available, using fallback instead.'
+          );
+          onWindowReady();
+        }
       })
     );
 

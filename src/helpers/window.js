@@ -24,7 +24,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 import Meta from 'gi://Meta';
-import GLib from 'gi://GLib';
 
 import { Logger } from './logger.js';
 
@@ -61,7 +60,7 @@ export class Window {
     }
   }
 
-  restore(currentWindow, retry = true) {
+  restore(currentWindow) {
     // Workspace check must come before movement/resize
     this._configureWorkspace(currentWindow, this._workspace);
 
@@ -73,14 +72,6 @@ export class Window {
 
     this._setMaximized(currentWindow);
     this._setMinimized(currentWindow);
-
-    if (retry && !this._equalRect(currentWindow)) {
-      Logger.debug(`Retrying restore`);
-      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-        this.restore(currentWindow, false);
-        return GLib.SOURCE_REMOVE;
-      });
-    }
   }
 
   _equalRect(window) {
