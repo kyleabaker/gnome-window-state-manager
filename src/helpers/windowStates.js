@@ -95,8 +95,8 @@ export class WindowStates {
 
         // Only restore if the saved state is different from the current reality
         if (!this._isAlreadyPositioned(savedState, currentState)) {
-          Logger.debug(
-            `Restoring '${currentState._title}' at x,y: ${currentState._rect.x},${currentState._rect.y}`
+          Logger.info(
+            `Restoring '${currentState._title}' - x,y: ${currentState._rect.x},${currentState._rect.y} -> ${savedState._rect.x},${savedState._rect.y}`
           );
           savedState.restore(window);
         }
@@ -120,7 +120,7 @@ export class WindowStates {
     try {
       const contents = JSON.stringify(this.windowStates, null, 2);
       GLib.file_set_contents(this.savePath, contents);
-      // Logger.debug(`Saved state to ${this.savePath}`);
+      Logger.debug(`Saved state to ${this.savePath}`);
     } catch (e) {
       Logger.error(`Failed to save state to disk: ${e.message}`);
     }
@@ -138,6 +138,7 @@ export class WindowStates {
       }
     } catch (e) {
       Logger.error(`Failed to load state from disk: ${e.message}`);
+      //TODO look for a backup file before falling back to an empty state.
     }
     return {};
   }

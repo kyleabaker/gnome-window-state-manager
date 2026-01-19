@@ -23,15 +23,16 @@
  * along with gnome-shell extension GNOME Wobbly Windows.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
-
+import Meta from 'gi://Meta';
 import GLib from 'gi://GLib';
+
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { Logger } from './src/helpers/logger.js';
 import { WindowStates } from './src/helpers/windowStates.js';
 
 const EXTENSION_LOG_NAME = 'GNOME Window State Manager';
-const LOG_LEVEL = Logger.LOG_LEVELS.EVERYTHING;
+const LOG_LEVEL = Logger.LOG_LEVELS.INFO;
 
 export default class WindowStateManager extends Extension {
   enable() {
@@ -58,7 +59,32 @@ export default class WindowStateManager extends Extension {
 
     // Watch for new windows being opened to restore their specific positions
     this._signals.push(
-      global.display.connect('window-created', (window) => {
+      global.display.connect('window-created', (display, window) => {
+        if (!window || typeof window.get_window_type !== 'function') {
+          return;
+        }
+
+        // Skip if it's not a "Normal" window (filters tooltips, menus, etc.)
+        const windowType = window.get_window_type();
+        if (windowType !== Meta.WindowType.NORMAL) {
+          Logger.info('Skip WindowType: ' + windowType);
+          return;
+        }
+
+        // Skip if it doesn't show up in the taskbar (extra safety)
+        const isSkipTaskbar = window.is_skip_taskbar?.() || false;
+        if (isSkipTaskbar) {
+          Logger.info('Skip non-taskbar windows');
+          return;
+        }
+
+        // Skip "Transient" windows (popups attached to a parent)
+        const isTransient = window.get_transient_for?.() || false;
+        if (isTransient) {
+          Logger.info('Skip transient windows');
+          return;
+        }
+
         // Restore position immediately (50ms delay for stability)
         this._scheduleRefresh('Window Created', 200);
 
