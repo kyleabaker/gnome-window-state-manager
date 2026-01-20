@@ -23,6 +23,8 @@
  * along with gnome-shell extension GNOME Wobbly Windows.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
+'use strict';
+
 export class Logger {
   // Name used for logging
   static LOG_NAME;
@@ -43,6 +45,16 @@ export class Logger {
   static init(logname, level) {
     this.LOG_NAME = logname;
     this.LOG_LEVEL = level;
+  }
+
+  static time(...args) {
+    if (this.LOG_LEVEL > this.LOG_LEVELS.INFO)
+      console.time(`[${this.LOG_NAME}] [TIME] ${args}`);
+  }
+
+  static timeEnd(...args) {
+    if (this.LOG_LEVEL > this.LOG_LEVELS.INFO)
+      console.timeEnd(`[${this.LOG_NAME}] [TIME] ${args}`);
   }
 
   static debug(...args) {

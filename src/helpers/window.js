@@ -23,6 +23,8 @@
  * along with gnome-shell extension GNOME Wobbly Windows.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
+'use strict';
+
 import Meta from 'gi://Meta';
 
 import { Logger } from './logger.js';
@@ -33,31 +35,51 @@ export class Window {
     if (windowData.get_frame_rect) {
       const rect = windowData.get_frame_rect();
 
-      // Manually map properties so JSON.stringify can see them
+      this._above = windowData.is_above();
+      this._fullscreen = windowData.fullscreen;
+      this._maximized = Window.getMaximizedFlags(windowData);
+      this._minimized = windowData.minimized;
+      this._on_all_workspaces = windowData.is_on_all_workspaces();
+      // Manually map rect properties so JSON.stringify can see them
       this._rect = {
         x: rect.x,
         y: rect.y,
         width: rect.width,
         height: rect.height,
       };
-
-      this._maximized = this._getMaximizedFlags(windowData);
-      this._minimized = windowData.minimized;
-      this._workspace = windowData.get_workspace().index();
-      this._wm_class =
-        typeof windowData.get_wm_class === 'function'
-          ? windowData.get_wm_class()
-          : windowData.wm_class || 'unknown';
-      this._title = windowData.get_title();
-      this._fullscreen = windowData.fullscreen;
       this._stable_sequence =
         typeof windowData.get_stable_sequence === 'function'
           ? windowData.get_stable_sequence()
           : null;
+      this._title = windowData.get_title();
+      this._wm_class =
+        typeof windowData.get_wm_class === 'function'
+          ? windowData.get_wm_class()
+          : windowData.wm_class || 'unknown';
+      this._workspace = windowData.get_workspace().index();
     } else {
       // If we passed a plain object (loaded from JSON)
       Object.assign(this, windowData);
     }
+  }
+
+  static isStateEqual(savedState, metaWindow) {
+    const rect = metaWindow.get_frame_rect();
+    if (
+      savedState._rect.x !== rect.x ||
+      savedState._rect.y !== rect.y ||
+      savedState._rect.width !== rect.width ||
+      savedState._rect.height !== rect.height
+    )
+      return false;
+
+    if (savedState._maximized !== Window.getMaximizedFlags(metaWindow))
+      return false;
+
+    if (savedState._workspace !== metaWindow.get_workspace().index())
+      return false;
+
+    return true;
   }
 
   restore(currentWindow) {
@@ -65,7 +87,7 @@ export class Window {
     this._configureWorkspace(currentWindow, this._workspace);
 
     if (!this._equalRect(currentWindow)) {
-      if (this._getMaximizedFlags(currentWindow)) currentWindow.unmaximize();
+      if (Window.getMaximizedFlags(currentWindow)) currentWindow.unmaximize();
 
       this._moveResizeFrame(currentWindow);
     }
@@ -73,12 +95,17 @@ export class Window {
     this._setMaximized(currentWindow);
     this._setMinimized(currentWindow);
 
+    this._setFullscreen(currentWindow);
+    this._setIsAbove(currentWindow);
+    this._setIsOnAllWorkspaces(currentWindow);
+
     // Focus the restored window, necessary for multi-workspace support
     if (!this._minimized) {
       const workspace = currentWindow.get_workspace();
-      if (workspace) workspace.activate(global.get_current_time());
+      const currentTime = global.get_current_time();
+      if (workspace) workspace.activate(currentTime);
 
-      currentWindow.activate(global.get_current_time());
+      currentWindow.activate(currentTime);
     }
   }
 
@@ -110,7 +137,7 @@ export class Window {
   }
 
   _setMaximized(window) {
-    const current = this._getMaximizedFlags(window);
+    const current = Window.getMaximizedFlags(window);
     if (current !== this._maximized) {
       if (this._maximized) window.maximize();
       else window.unmaximize();
@@ -124,20 +151,42 @@ export class Window {
     }
   }
 
-  _getMaximizedFlags(window) {
+  static getMaximizedFlags(window) {
     let flags = 0;
     if (window.maximized_horizontally) flags |= Meta.MaximizeFlags.HORIZONTAL;
     if (window.maximized_vertically) flags |= Meta.MaximizeFlags.VERTICAL;
     return flags;
   }
 
+  _setFullscreen(window) {
+    if (window.fullscreen !== this._fullscreen) {
+      if (this._fullscreen) window.make_fullscreen();
+      else window.unmake_fullscreen();
+    }
+  }
+
+  _setIsAbove(window) {
+    if (window.is_above !== this._above) {
+      if (this._above) window.make_above();
+      else window.unmake_above();
+    }
+  }
+
+  _setIsOnAllWorkspaces(window) {
+    if (window.is_on_all_workspaces !== this._on_all_workspaces) {
+      if (this._on_all_workspaces) window.stick();
+      else window.unstick();
+    }
+  }
+
   _configureWorkspace(window, workspaceIndex) {
     // FIX: Access n_workspaces via workspace_manager
     const wsCount = global.workspace_manager.n_workspaces;
 
+    const currentWorkspace = window.get_workspace();
     if (
       workspaceIndex < wsCount &&
-      workspaceIndex !== window.get_workspace().index()
+      (!currentWorkspace || workspaceIndex !== currentWorkspace.index())
     ) {
       window.change_workspace_by_index(workspaceIndex, true);
     }

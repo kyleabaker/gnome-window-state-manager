@@ -23,8 +23,11 @@
  * along with gnome-shell extension GNOME Wobbly Windows.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
+'use strict';
+
 import Meta from 'gi://Meta';
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
 import { Logger } from './logger.js';
 import { Window } from './window.js';
@@ -35,6 +38,7 @@ export class WindowStates {
       GLib.get_user_config_dir(),
       'gnome-window-state-manager.json',
     ]);
+    this._file = Gio.File.new_for_path(this.savePath);
     // windowStates structure: { "1920x1080": { "wm_class:index": WindowObject } }
     this.windowStates = this.loadFromFile();
   }
@@ -125,10 +129,9 @@ export class WindowStates {
       // Match against the saved layout using the same keying logic
       if (savedLayout[persistentKey]) {
         const savedState = new Window(savedLayout[persistentKey]);
-        const currentState = new Window(window);
 
         // Only perform the expensive move/resize if the reality differs from the save
-        if (!this._isAlreadyPositioned(savedState, currentState)) {
+        if (!Window.isStateEqual(savedState, window)) {
           Logger.debug(`Restoring instance ${instanceIndex} of '${wmClass}'`);
           savedState.restore(window);
         }
@@ -136,42 +139,63 @@ export class WindowStates {
     }
   }
 
-  // Helper to compare current vs saved
-  _isAlreadyPositioned(saved, current) {
-    return (
-      saved._rect.x === current._rect.x &&
-      saved._rect.y === current._rect.y &&
-      saved._rect.width === current._rect.width &&
-      saved._rect.height === current._rect.height &&
-      saved._maximized === current._maximized &&
-      saved._workspace === current._workspace
-    );
-  }
-
   saveToFile() {
-    try {
-      const contents = JSON.stringify(this.windowStates, null, 2);
-      GLib.file_set_contents(this.savePath, contents);
-      Logger.debug(`Saved state to ${this.savePath}`);
-    } catch (e) {
-      Logger.error(`Failed to save state to disk: ${e.message}`);
+    Logger.time('saveToFile');
+
+    if (this._isSaving) {
+      this._saveQueued = true;
+      return;
     }
+    this._isSaving = true;
+
+    const contents = JSON.stringify(this.windowStates, null, 2);
+    const bytes = new GLib.Bytes(contents);
+
+    this._file.replace_contents_async(
+      bytes.get_data(),
+      null,
+      false,
+      Gio.FileCreateFlags.REPLACE_DESTINATION,
+      null,
+      (file, res) => {
+        try {
+          file.replace_contents_finish(res);
+          Logger.debug(`Saved state to ${this.savePath}`);
+        } catch (e) {
+          Logger.error(`Failed to save state to disk: ${e.message}`);
+        }
+        this._isSaving = false;
+        if (this._saveQueued) {
+          this._saveQueued = false;
+          this.saveToFile();
+        }
+      }
+    );
+
+    Logger.timeEnd('saveToFile');
   }
 
   loadFromFile() {
+    Logger.time('loadFromFile');
+
     try {
       if (GLib.file_test(this.savePath, GLib.FileTest.EXISTS)) {
         const [success, contents] = GLib.file_get_contents(this.savePath);
         if (success) {
           // GLib returns a Uint8Array/Bytes in some environments, ensure it's a string
           const decoder = new TextDecoder(); // eslint-disable-line
-          return JSON.parse(decoder.decode(contents));
+          const parsedContents = JSON.parse(decoder.decode(contents));
+
+          Logger.timeEnd('loadFromFile');
+          return parsedContents;
         }
       }
     } catch (e) {
       Logger.error(`Failed to load state from disk: ${e.message}`);
       //TODO look for a backup file before falling back to an empty state.
     }
+
+    Logger.timeEnd('loadFromFile');
     return {};
   }
 }

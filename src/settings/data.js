@@ -30,19 +30,20 @@
  * @returns settings data object
  */
 export function createSettingsData(settings) {
-  const doubleKeys = [
+  const integerKeys = [
     ['DELAY_WINDOW_CREATED_REFRESH', 'delay-window-created-refresh'],
     ['DELAY_WINDOW_RESIZE_SIGNALS', 'delay-window-resize-signals'],
+    ['DELAY_SAVE_TO_FILE', 'delay-save-to-file'],
   ];
 
   const booleanKeys = [['ENABLE_LOGGING', 'enable-logging']];
 
   const data = {};
 
-  for (const [prop, key] of doubleKeys) {
+  for (const [prop, key] of integerKeys) {
     data[prop] = {
-      get: () => settings.get_double(key),
-      set: (v) => settings.set_double(key, v),
+      get: () => settings.get_int(key),
+      set: (v) => settings.set_int(key, v),
     };
   }
 
