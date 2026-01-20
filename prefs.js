@@ -58,7 +58,7 @@ export default class Prefs extends ExtensionPreferences {
       group1,
       'Window Created Refresh Delay',
       settingsData.DELAY_WINDOW_CREATED_REFRESH,
-      50,
+      0,
       1000,
       10,
       0
@@ -67,9 +67,18 @@ export default class Prefs extends ExtensionPreferences {
       group1,
       'Window Resize Signals Delay',
       settingsData.DELAY_WINDOW_RESIZE_SIGNALS,
-      50,
-      2000,
+      0,
+      1000,
       10,
+      0
+    );
+    this.saveToFileDelaySlider = this.addSlider(
+      group1,
+      'Save to File Delay',
+      settingsData.DELAY_SAVE_TO_FILE,
+      100,
+      600000,
+      250,
       0
     );
     page.add(group1);
@@ -100,8 +109,9 @@ export default class Prefs extends ExtensionPreferences {
     button.set_icon_name('edit-clear');
 
     button.connect('clicked', () => {
-      settingsData.DELAY_WINDOW_CREATED_REFRESH.set(200);
-      settingsData.DELAY_WINDOW_RESIZE_SIGNALS.set(500);
+      settingsData.DELAY_WINDOW_CREATED_REFRESH.set(0);
+      settingsData.DELAY_WINDOW_RESIZE_SIGNALS.set(200);
+      settingsData.DELAY_SAVE_TO_FILE.set(5000);
       settingsData.ENABLE_LOGGING.set(false);
 
       this.delayWindowCreatedRefreshSlider.set_value(
@@ -109,6 +119,9 @@ export default class Prefs extends ExtensionPreferences {
       );
       this.windowResizeSignalsDelaySlider.set_value(
         settingsData.DELAY_WINDOW_RESIZE_SIGNALS.get()
+      );
+      this.saveToFileDelaySlider.set_value(
+        settingsData.DELAY_SAVE_TO_FILE.get()
       );
       this.enableLoggingSwitch.set_value(settingsData.ENABLE_LOGGING.get());
     });

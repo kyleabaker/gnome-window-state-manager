@@ -4,15 +4,21 @@
     id="org.gnome.shell.extensions.com.github.kyleabaker.gnome-window-state-manager"
     path="/org/gnome/shell/extensions/com/github/kyleabaker/gnome-window-state-manager/"
   >
-    <key type="d" name="delay-window-created-refresh">
-      <default>200</default>
-      <summary>Window Created Refresh Delay</summary>
+    <key type="i" name="delay-window-created-refresh">
+      <default>0</default>
+      <summary>Window Created Refresh Delay (ms)</summary>
       <description />
     </key>
 
-    <key type="d" name="delay-window-resize-signals">
-      <default>500</default>
-      <summary>Window Resize Signals Delay</summary>
+    <key type="i" name="delay-window-resize-signals">
+      <default>200</default>
+      <summary>Window Resize Signals Delay (ms)</summary>
+      <description />
+    </key>
+
+    <key type="i" name="delay-save-to-file">
+      <default>5000</default>
+      <summary>Save to File Delay (ms)</summary>
       <description />
     </key>
 
