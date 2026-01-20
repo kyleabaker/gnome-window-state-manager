@@ -25,7 +25,7 @@ To install this extension you can either
 
 - use http://extensions.gnome.org (caution: it may not contain the most recent versions)
 - use the GNOME Shell Extension Manager
-- copy it under ~/.local/share/gnome-shell/extensions/window-state-manager@kishorv06.github.io/ in your home directory
+- copy it under ~/.local/share/gnome-shell/extensions/gnome-window-state-manager@kyleabaker.github.com/ in your home directory
 - use the install.sh script to install automatically
 
 Note: you may have to explicitly enable the extension using the GNOME Shell Extension Manager after installation.
