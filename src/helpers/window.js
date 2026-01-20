@@ -72,6 +72,14 @@ export class Window {
 
     this._setMaximized(currentWindow);
     this._setMinimized(currentWindow);
+
+    // Focus the restored window, necessary for multi-workspace support
+    if (!this._minimized) {
+      const workspace = currentWindow.get_workspace();
+      if (workspace) workspace.activate(global.get_current_time());
+
+      currentWindow.activate(global.get_current_time());
+    }
   }
 
   _equalRect(window) {
