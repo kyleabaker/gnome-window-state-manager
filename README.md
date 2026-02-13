@@ -1,6 +1,7 @@
 # GNOME Window State Manager for GNOME Shell
 
-[![Build and Release Extension](https://github.com/kyleabaker/gnome-window-state-manager/actions/workflows/release.yml/badge.svg)](https://github.com/kyleabaker/gnome-window-state-manager/actions)
+[![Build and Release Extension](https://github.com/kyleabaker/gnome-window-state-manager/actions/workflows/release.yaml/badge.svg)](https://github.com/kyleabaker/gnome-window-state-manager/actions)
+![CI Status](https://github.com/kyleabaker/gnome-window-state-manager/actions/workflows/ci.yaml/badge.svg)
 [![Latest Release](https://img.shields.io/github/v/release/kyleabaker/gnome-window-state-manager)](https://github.com/kyleabaker/gnome-window-state-manager/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
