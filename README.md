@@ -9,12 +9,7 @@ GNOME Window State Manager for GNOME Shell. This extension restores window posit
 
 Window State Manager is a GNOME Shell extension to monitor window states (position on monitor, location, size, etc.) and restore them automatically to their previous positions when a change in layout occurs. It was created to solve an issue with GNOME on wayland where some programs won't remember their positions when device is docked and undocked.
 
-This implementation introduces optimizations and bugfixes to the original implementation by [Kishor Viswanathan](https://github.com/kishorviswanathan/window-state-manager).
-
-## Limitations
-
-- Restore does not manage which windows are on top. However, in testing to date the correct windows have always been shown on top.
-- State is saved in memory and is not preserved across restarts.
+This implementation introduces significant enhancements,optimizations and bugfixes to the original implementation by [Kishor Viswanathan](https://github.com/kishorviswanathan/window-state-manager).
 
 ### Quick Install (One-Liner)
 

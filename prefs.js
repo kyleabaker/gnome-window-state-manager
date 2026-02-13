@@ -1,8 +1,8 @@
 /*
  * GNOME Window State Manager for GNOME Shell
  *
- * Copyright (C) 2020
- *     Mauro Pepe <https://github.com/hermes83/compiz-windows-effect>
+ * Copyright (C) 2026
+ *     Kyle Baker <https://github.com/kyleabaker/gnome-window-state-manager>
  *
  * This file is part of the gnome-shell extension gnome-window-state-manager.
  *
