@@ -4,23 +4,23 @@
  * Copyright (C) 2025
  *     Kishor Viswanathan <https://github.com/kishorviswanathan/window-state-manager>
  * Copyright (C) 2026
- *     Kyle Baker <https://github.com/kyleabaker/gnome-wobbly-windows>
+ *     Kyle Baker <https://github.com/kyleabaker/gnome-window-state-manager>
  *
- * This file is part of the gnome-shell extension GNOME Wobbly Windows.
+ * This file is part of the gnome-shell extension GNOME Window State Manager.
  *
- * gnome-shell extension GNOME Wobbly Windows is free software: you can
+ * gnome-shell extension GNOME Window State Manager is free software: you can
  * redistribute it and/or modify it under the terms of the GNU
  * General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * gnome-shell extension GNOME Wobbly Windows is distributed in the hope that it
+ * gnome-shell extension GNOME Window State Manager is distributed in the hope that it
  * will be useful, but WITHOUT ANY WARRANTY; without even the
  * implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
  * PURPOSE.  See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with gnome-shell extension GNOME Wobbly Windows.  If not, see
+ * along with gnome-shell extension GNOME Window State Manager.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
 'use strict';
