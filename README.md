@@ -11,6 +11,8 @@ Window State Manager is a GNOME Shell extension to monitor window states (positi
 
 This implementation introduces significant enhancements,optimizations and bugfixes to the original implementation by [Kishor Viswanathan](https://github.com/kishorviswanathan/window-state-manager).
 
+[<img src="assets/video.webp" width="100%">](https://www.kyleabaker.com/goodies/linux/gnome-window-state-manager-for-gnome-shell/)
+
 ### Quick Install (One-Liner)
 
 If you have `curl` and `jq` installed, you can install the latest release directly without cloning the repository:
