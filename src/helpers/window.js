@@ -56,7 +56,7 @@ export class Window {
         typeof windowData.get_wm_class === 'function'
           ? windowData.get_wm_class()
           : windowData.wm_class || 'unknown';
-      this._workspace = windowData.get_workspace().index();
+      this._workspace = windowData.get_workspace?.()?.index?.() ?? 0;
     } else {
       // If we passed a plain object (loaded from JSON)
       Object.assign(this, windowData);
@@ -76,7 +76,35 @@ export class Window {
     if (savedState._maximized !== Window.getMaximizedFlags(metaWindow))
       return false;
 
-    if (savedState._workspace !== metaWindow.get_workspace().index())
+    const currentWorkspace = metaWindow.get_workspace();
+    if (
+      savedState._workspace !==
+      (currentWorkspace ? currentWorkspace.index() : 0)
+    )
+      return false;
+
+    if (
+      savedState._minimized !== undefined &&
+      savedState._minimized !== metaWindow.minimized
+    )
+      return false;
+
+    if (
+      savedState._fullscreen !== undefined &&
+      savedState._fullscreen !== metaWindow.fullscreen
+    )
+      return false;
+
+    if (
+      savedState._above !== undefined &&
+      savedState._above !== metaWindow.is_above()
+    )
+      return false;
+
+    if (
+      savedState._on_all_workspaces !== undefined &&
+      savedState._on_all_workspaces !== metaWindow.is_on_all_workspaces()
+    )
       return false;
 
     return true;
@@ -166,14 +194,14 @@ export class Window {
   }
 
   _setIsAbove(window) {
-    if (window.is_above !== this._above) {
+    if (window.is_above() !== this._above) {
       if (this._above) window.make_above();
       else window.unmake_above();
     }
   }
 
   _setIsOnAllWorkspaces(window) {
-    if (window.is_on_all_workspaces !== this._on_all_workspaces) {
+    if (window.is_on_all_workspaces() !== this._on_all_workspaces) {
       if (this._on_all_workspaces) window.stick();
       else window.unstick();
     }
