@@ -63,24 +63,33 @@ export class WindowStates {
     const appCounts = {};
 
     // Get windows and SORT them by stable_sequence
-    // This ensures Index #1 is ALWAYS the window created first.
-    const windows = this._getWindows().sort((a, b) => {
-      return a.get_stable_sequence() - b.get_stable_sequence();
-    });
+    // Pre-cache sequence numbers to avoid repeated GObject introspection calls during sorting
+    const windows = this._getWindows()
+      .map((w) => ({ window: w, seq: w.get_stable_sequence?.() ?? 0 }))
+      .sort((a, b) => a.seq - b.seq);
 
-    for (const window of windows) {
+    let hasChanged = false;
+
+    for (const { window } of windows) {
       const wmClass = window.get_wm_class() || 'unknown';
       appCounts[wmClass] = (appCounts[wmClass] || 0) + 1;
 
       const persistentKey = `${wmClass}:${appCounts[wmClass]}`;
+      const existing = currentLayout[persistentKey];
 
-      // Convert the C-Object into our clean JS-Object
-      // Ensure your Window class constructor handles a Meta.Window input
-      currentLayout[persistentKey] = new Window(window);
+      if (!existing || !Window.isStateEqual(existing, window)) {
+        hasChanged = true;
+        currentLayout[persistentKey] = new Window(window);
 
-      Logger.debug(
-        `Saved ${persistentKey} at ${currentLayout[persistentKey]._rect.x},${currentLayout[persistentKey]._rect.y}`
-      );
+        Logger.debug(
+          `Saved ${persistentKey} at ${currentLayout[persistentKey]._rect.x},${currentLayout[persistentKey]._rect.y}`
+        );
+      }
+    }
+
+    if (!hasChanged) {
+      Logger.debug('No window state changes detected, skipping save to disk.');
+      return;
     }
 
     this.windowStates[displaySizeKey] = currentLayout;
@@ -100,39 +109,34 @@ export class WindowStates {
     // Get all active windows once to avoid repeated filtering
     const allWindows = this._getWindows();
 
-    // Group windows by class to avoid O(N^2) lookup in the loop
+    // Group windows by class with pre-cached sequence numbers
     const windowsByClass = {};
     for (const window of allWindows) {
       const wmClass = window.get_wm_class() || 'unknown';
       if (!windowsByClass[wmClass]) windowsByClass[wmClass] = [];
-      windowsByClass[wmClass].push(window);
+      windowsByClass[wmClass].push({
+        window,
+        seq: window.get_stable_sequence?.() ?? 0,
+      });
     }
 
-    // Sort each group by stable sequence
+    // Sort each group by stable sequence in pure JS
     for (const wmClass in windowsByClass) {
-      windowsByClass[wmClass].sort(
-        (a, b) => a.get_stable_sequence() - b.get_stable_sequence()
-      );
+      windowsByClass[wmClass].sort((a, b) => a.seq - b.seq);
     }
 
-    for (const window of allWindows) {
-      const wmClass = window.get_wm_class() || 'unknown';
+    // Iterate directly through grouped windows to avoid secondary search loops and indexOf lookups
+    for (const wmClass in windowsByClass) {
+      const sameAppWindows = windowsByClass[wmClass];
+      for (let i = 0; i < sameAppWindows.length; i++) {
+        const { window } = sameAppWindows[i];
+        const persistentKey = `${wmClass}:${i + 1}`;
+        const rawSaved = savedLayout[persistentKey];
 
-      // To handle multiple identical apps, find all windows of this class
-      // and sort them by their session-unique stable sequence.
-      const sameAppWindows = windowsByClass[wmClass] || [];
-
-      // Determine which "instance number" this window is for this session
-      const instanceIndex = sameAppWindows.indexOf(window) + 1;
-      const persistentKey = `${wmClass}:${instanceIndex}`;
-
-      // Match against the saved layout using the same keying logic
-      if (savedLayout[persistentKey]) {
-        const savedState = new Window(savedLayout[persistentKey]);
-
-        // Only perform the expensive move/resize if the reality differs from the save
-        if (!Window.isStateEqual(savedState, window)) {
-          Logger.debug(`Restoring instance ${instanceIndex} of '${wmClass}'`);
+        // Match against saved layout; avoid allocating Window instance if state is already equal
+        if (rawSaved && !Window.isStateEqual(rawSaved, window)) {
+          Logger.debug(`Restoring instance ${i + 1} of '${wmClass}'`);
+          const savedState = new Window(rawSaved);
           savedState.restore(window);
         }
       }
